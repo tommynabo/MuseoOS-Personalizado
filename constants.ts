@@ -3,7 +3,7 @@ import { ClientProfile, ContentPiece, Stats } from './types';
 export const CLIENT_PROFILES: Record<string, ClientProfile> = {
   seo_consultor: {
     id: 'seo_consultor',
-    name: 'Apex Engine',
+    name: 'MuseOS',
     role: 'Consultoría SEO / Coaching de Negocios',
     avatar: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?auto=format&fit=crop&q=80&w=200',
     tone: 'Directo y Pragmático',

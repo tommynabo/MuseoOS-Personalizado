@@ -33,10 +33,10 @@ export default function Login() {
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900">
-          Motor de Prospección B2B
+          MuseOS • LinkedIn Automations
         </h2>
         <p className="mt-2 text-center text-sm text-slate-500">
-          Acceso exclusivo para Consultores B2B
+          Arquitectura Base y Sistemas de Contenido
         </p>
       </div>
 

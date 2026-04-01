@@ -37,7 +37,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onNavigate, curren
             <div className="bg-slate-900 p-2 rounded-xl text-white">
               <Cpu size={18} fill="none" />
             </div>
-            <span>Apex Engine</span>
+            <span>MuseOS</span>
             <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">B2B</span>
           </div>
         </div>
@@ -70,7 +70,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onNavigate, curren
             <LogOut size={18} />
             Cerrar Sesión
           </button>
-          <p className="text-center text-[10px] text-slate-300 mt-4">Apex Engine v3.0</p>
+          <p className="text-center text-[10px] text-slate-300 mt-4">MuseOS v3.0</p>
         </div>
       </div>
 

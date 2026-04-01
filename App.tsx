@@ -54,7 +54,7 @@ const App: React.FC = () => {
         // Map snake_case to camelCase
         setCurrentProfile({
           id: 'seo_consultor', // mapped ID
-          name: data.role || 'Apex Engine',
+          name: data.role || 'MuseOS',
           role: data.role || 'Consultoría SEO / Coaching de Negocios',
           avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200',
           tone: data.tone || 'Directo y Pragmático',
