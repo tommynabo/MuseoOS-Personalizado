@@ -15,7 +15,7 @@ const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [currentProfile, setCurrentProfile] = useState<ClientProfile>(CLIENT_PROFILES['seo_consultor']);
+  const [currentProfile, setCurrentProfile] = useState<ClientProfile>(CLIENT_PROFILES['ai_architect']);
   const [contentPieces, setContentPieces] = useState<ContentPiece[]>(INITIAL_CONTENT);
   const [selectedIdea, setSelectedIdea] = useState<ContentPiece | null>(null);
 
@@ -53,7 +53,7 @@ const App: React.FC = () => {
       if (data) {
         // Map snake_case to camelCase
         setCurrentProfile({
-          id: 'seo_consultor', // mapped ID
+          id: 'ai_architect', // mapped ID
           name: data.role || 'MuseOS',
           role: data.role || 'Consultoría SEO / Coaching de Negocios',
           avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200',

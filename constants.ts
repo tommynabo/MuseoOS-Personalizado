@@ -41,7 +41,7 @@ export const CLIENT_PROFILES: Record<string, ClientProfile> = {
 };
 
 export const MOCK_STATS: Record<string, Stats> = {
-  seo_consultor: {
+  ai_architect: {
     impressions: 8900,
     postsReady: 5,
     ideasGenerated: 24,
