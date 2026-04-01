@@ -367,191 +367,7 @@ const router = express.Router();
 
 router.get('/health', (_, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 
-// ===== CRON / AUTOPILOT ENDPOINT =====
-// Called by Vercel Cron (hourly) or manually via ?run_all=true
-router.get('/cron', async (req: Request, res: Response) => {
-    const runAll = req.query.run_all === 'true';
-
-    try {
-        if (!supabaseAdmin) {
-            return res.status(503).json({ error: 'Supabase not configured' });
-        }
-
-        console.log('[Cron] Checking for due schedules...');
-        const now = new Date();
-
-        // 1. Fetch all ENABLED schedules
-        const TABLE_SCHEDULES = process.env.DB_TABLE_SCHEDULES || 'schedules_pablo';
-        const TABLE_EXECUTIONS = process.env.DB_TABLE_EXECUTIONS || 'schedule_executions_pablo';
-        const TABLE_PROFILES_CRON = process.env.DB_TABLE_PROFILES || 'profiles_pablo';
-        const TABLE_CREATORS_CRON = process.env.DB_TABLE_CREATORS || 'creators_pablo';
-        const TABLE_POSTS_CRON = process.env.DB_TABLE_POSTS || 'posts_pablo';
-
-        const { data: schedules, error: schedErr } = await supabaseAdmin
-            .from(TABLE_SCHEDULES)
-            .select('*')
-            .eq('enabled', true);
-
-        if (schedErr) throw schedErr;
-        if (!schedules || schedules.length === 0) {
-            return res.json({ success: true, message: 'No active schedules found', results: [] });
-        }
-
-        // 2. Filter schedules that are due NOW (in user's timezone)
-        const dueSchedules = schedules.filter(schedule => {
-            if (runAll) return true;
-            try {
-                const tz = schedule.timezone || 'Europe/Madrid';
-                const userTime = now.toLocaleTimeString('en-GB', { timeZone: tz, hour12: false, hour: '2-digit', minute: '2-digit' });
-                const [userHour] = userTime.split(':').map(Number);
-                const [schedHour] = schedule.time.split(':').map(Number);
-                return userHour >= schedHour;
-            } catch { return false; }
-        });
-
-        console.log(`[Cron] ${dueSchedules.length} due out of ${schedules.length} total`);
-        const results: any[] = [];
-
-        // 3. Execute workflow for each due schedule
-        for (const schedule of dueSchedules) {
-            // Skip if already executed today
-            const lastExec = schedule.last_execution ? new Date(schedule.last_execution) : null;
-            const alreadyToday = lastExec &&
-                lastExec.getDate() === now.getDate() &&
-                lastExec.getMonth() === now.getMonth() &&
-                lastExec.getFullYear() === now.getFullYear();
-
-            if (alreadyToday && !runAll) {
-                console.log(`[Cron] Skipping ${schedule.id} (already ran today)`);
-                continue;
-            }
-
-            console.log(`[Cron] Running for user ${schedule.user_id}, source=${schedule.source}, count=${schedule.count}`);
-
-            try {
-                // Get user profile
-                const { data: profile } = await supabaseAdmin
-                    .from(TABLE_PROFILES_CRON).select('*').eq('id', schedule.user_id).single();
-                if (!profile) { throw new Error('Profile not found'); }
-
-                const keywords: string[] = profile.niche_keywords || [];
-                const customInstructions = profile.custom_instructions || '';
-                const targetCount = schedule.count || 100; // Removed limits
-
-                // Prepare queries
-                let searchQueries: string[] = [];
-                let creatorUrls: string[] = [];
-
-                if (schedule.source === 'keywords') {
-                    if (keywords.length === 0) throw new Error('No keywords configured');
-                    const activeKW = keywords.slice(0, 3);
-                    const expandedLists = await Promise.all(activeKW.map((k: string) => expandSearchQuery(k)));
-                    const rawQ = [...new Set([...activeKW, ...expandedLists.flat()])];
-                    searchQueries = rawQ.filter(q => typeof q === 'string' && q.trim().length > 0).slice(0, 3);
-                } else {
-                    const { data: creators } = await supabaseAdmin
-                        .from(TABLE_CREATORS_CRON).select('linkedin_url').eq('user_id', schedule.user_id);
-                    creatorUrls = (creators || [])
-                        .map((c: any) => c.linkedin_url)
-                        .filter((u: any) => typeof u === 'string' && u.trim().length > 0)
-                        .slice(0, 5);
-                    if (creatorUrls.length === 0) throw new Error('No creators configured');
-                }
-
-                // Fetch posts
-                let rawPosts: ApifyPost[] = [];
-                if (schedule.source === 'keywords') {
-                    const fetched = await Promise.all(searchQueries.map(q => searchLinkedInPosts([q], targetCount * 2)));
-                    rawPosts = fetched.flat();
-                } else {
-                    rawPosts = await getCreatorPosts(creatorUrls, targetCount * 2);
-                }
-
-                if (rawPosts.length === 0) throw new Error('No posts found from sources');
-
-                // Evaluate best posts
-                const bestPosts = await evaluatePostEngagement(rawPosts);
-                const toProcess = bestPosts.slice(0, targetCount).filter(p => extractPostText(p).length >= 30);
-
-                if (toProcess.length === 0) throw new Error('All posts filtered out (too short/low quality)');
-
-                // Generate in parallel (same pipeline as manual generator)
-                let savedCount = 0;
-                const genResults = await Promise.allSettled(toProcess.map(async (post) => {
-                    const postText = extractPostText(post);
-                    const filtered = filterSensitiveData(postText);
-                    const structure = await extractPostStructure(filtered);
-                    const rewritten = await regeneratePost(structure, filtered, customInstructions);
-                    if (!rewritten || rewritten.length < 20) throw new Error('Rewrite too short');
-
-                    let analysisObj: any = {};
-                    try { analysisObj = JSON.parse(structure); } catch { }
-                    const postUrl = post.linkedinUrl || post.url || post.postUrl || post.socialUrl || '';
-
-                    const { error: insertErr } = await supabaseAdmin!
-                        .from(TABLE_POSTS_CRON).insert({
-                            user_id: schedule.user_id,
-                            original_post_id: post.id || 'unknown',
-                            original_url: postUrl,
-                            original_author: post.author?.name || post.authorName || 'Unknown',
-                            original_content: postText,
-                            generated_content: rewritten,
-                            type: schedule.source === 'keywords' ? 'research' : 'parasite',
-                            status: 'idea',
-                            meta: {
-                                structure: analysisObj,
-                                original_url: postUrl,
-                                engagement: { likes: getMetric(post, 'likes'), comments: getMetric(post, 'comments') },
-                                ai_analysis: {
-                                    hook: analysisObj.hook || null,
-                                    narrative_arc: analysisObj.narrative_arc || null,
-                                    emotional_triggers: analysisObj.emotional_triggers || null,
-                                    virality_score: analysisObj.virality_score || null,
-                                    structural_blueprint: analysisObj.structural_blueprint || null,
-                                    replication_strategy: analysisObj.replication_strategy || null
-                                },
-                                generated_by: 'autopilot'
-                            }
-                        });
-                    if (insertErr) throw new Error(`DB insert: ${insertErr.message}`);
-                    return true;
-                }));
-
-                savedCount = genResults.filter(r => r.status === 'fulfilled').length;
-                console.log(`[Cron] User ${schedule.user_id}: ${savedCount}/${toProcess.length} posts generated`);
-
-                // Log execution
-                await supabaseAdmin.from(TABLE_EXECUTIONS).insert({
-                    schedule_id: schedule.id, user_id: schedule.user_id,
-                    executed_at: now, status: savedCount > 0 ? 'success' : 'failed',
-                    posts_generated: savedCount
-                });
-
-                // Update last_execution
-                await supabaseAdmin.from(TABLE_SCHEDULES)
-                    .update({ last_execution: now }).eq('id', schedule.id);
-
-                results.push({ user: schedule.user_id, success: true, posts: savedCount });
-
-            } catch (userErr: any) {
-                console.error(`[Cron] Error for user ${schedule.user_id}:`, userErr.message);
-                try {
-                    await supabaseAdmin!.from(TABLE_EXECUTIONS).insert({
-                        schedule_id: schedule.id, user_id: schedule.user_id,
-                        executed_at: now, status: 'failed', posts_generated: 0,
-                        error_message: userErr.message
-                    });
-                } catch (_) { /* ignore logging error */ }
-                results.push({ user: schedule.user_id, success: false, error: userErr.message });
-            }
-        }
-
-        res.json({ success: true, message: `Processed ${results.length} schedules`, results });
-    } catch (error: any) {
-        console.error('[Cron] Fatal error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
+// Autopilot logic eradicated per user request
 
 router.get('/creators', requireAuth, async (req, res) => {
     const supabase = getUserSupabase(req);
@@ -648,35 +464,54 @@ async function executeWorkflowGenerate(req: Request, res: Response) {
     const targetCount = count || 100; // Removed limit
 
     try {
-        const { data: profile } = await supabase.from(process.env.DB_TABLE_PROFILES || 'profiles_pablo').select('*').single();
-        if (!profile) return res.status(400).json({ error: "Config needed." });
+        let { data: profile } = await supabase.from(process.env.DB_TABLE_PROFILES || 'profiles_pablo').select('*').eq('id', user.id).single();
+        if (!profile) {
+            console.log('[WORKFLOW] Profile missing, creating default...');
+            const defaultKeywords = ['Consultoría SEO', 'Agencia B2B', 'Coaching High Ticket'];
+            const { data: newProfile, error: profileErr } = await supabase.from(process.env.DB_TABLE_PROFILES || 'profiles_pablo').insert({
+                id: user.id,
+                role: 'Consultoría B2B',
+                tone: 'Directo y Pragmático',
+                niche_keywords: defaultKeywords,
+                custom_instructions: ''
+            }).select().single();
+            if (profileErr) throw new Error('DB Error creates profile');
+            profile = newProfile || { niche_keywords: defaultKeywords };
+        }
 
         const keywords = profile.niche_keywords || [];
         const customInstructions = profile.custom_instructions || '';
 
         console.log('[WORKFLOW] Starting. Source:', source, 'Target:', targetCount, 'Keywords:', keywords);
 
-        // Prepare search queries (only once, reused across rounds)
         let searchQueries: string[] = [];
         let creatorUrls: string[] = [];
 
         if (source === 'keywords') {
-            if (keywords.length === 0) return res.status(400).json({ error: "No keywords." });
-            const activeKeywords = keywords.slice(0, 3); // Use top 3 keywords
-            console.log('[WORKFLOW] Active keywords:', activeKeywords);
+            if (keywords.length === 0) return res.status(400).json({ error: "Configura tus nichos primero." });
+            const activeKeywords = keywords.slice(0, 3);
             const expandedLists = await Promise.all(activeKeywords.map((k: string) => expandSearchQuery(k)));
-            console.log('[WORKFLOW] Expanded queries:', expandedLists);
             const rawQueries = [...new Set([...activeKeywords, ...expandedLists.flat()])];
-            searchQueries = rawQueries.filter(q => typeof q === 'string' && q.trim().length > 0).slice(0, 3); // Max 3 queries to avoid Vercel timeout
-            console.log('[WORKFLOW] Final search queries:', searchQueries);
+            searchQueries = rawQueries.filter(q => typeof q === 'string' && q.trim().length > 0).slice(0, 3);
         } else {
-            const { data: creators } = await supabase.from(process.env.DB_TABLE_CREATORS || 'creators_pablo').select('linkedin_url');
-            if (!creators?.length) return res.status(400).json({ error: "No creators." });
+            let { data: creators } = await supabase.from(process.env.DB_TABLE_CREATORS || 'creators_pablo').select('linkedin_url').eq('user_id', user.id);
+            
+            // Si está vacío, le inyectamos a Alex Hormozi o Sam Ovens para q funcione de base y no pete 400.
+            if (!creators?.length) {
+                console.log('[WORKFLOW] No creators found, injecting default...');
+                await supabase.from(process.env.DB_TABLE_CREATORS || 'creators_pablo').insert({
+                    user_id: user.id,
+                    name: 'Alex Hormozi',
+                    linkedin_url: 'https://www.linkedin.com/in/alexhormozi/',
+                    headline: 'Default Creator'
+                });
+                creators = [{ linkedin_url: 'https://www.linkedin.com/in/alexhormozi/' }];
+            }
+
             creatorUrls = creators
                 .map((c: any) => c.linkedin_url)
                 .filter((u: any) => typeof u === 'string' && u.trim().length > 0)
                 .slice(0, 5);
-            if (creatorUrls.length === 0) return res.status(400).json({ error: "No valid creator URLs." });
         }
 
         // ===== SMART BUFFER LOOP =====
@@ -846,179 +681,7 @@ router.post('/workflow/research', requireAuth, async (req, res) => {
     return executeWorkflowGenerate(req, res);
 });
 
-// ===== SCHEDULE / AUTOPILOT ROUTES =====
-
-// GET - Obtener configuración del schedule del usuario
-router.get('/schedule', requireAuth, async (req: any, res) => {
-    try {
-        const supabase = getUserSupabase(req);
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-        if (userError || !user) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-
-        const { data, error } = await supabaseAdmin!
-            .from(process.env.DB_TABLE_SCHEDULES || 'schedules_pablo')
-            .select('*')
-            .eq('user_id', user.id);
-
-        if (error) throw error;
-
-        const schedule = data && data.length > 0 ? data[0] : null;
-        res.json({
-            status: 'success',
-            schedule
-        });
-    } catch (error: any) {
-        console.error('Error getting schedule:', error);
-        res.status(500).json({ error: error.message || 'Failed to get schedule' });
-    }
-});
-
-// POST - Crear o actualizar schedule
-router.post('/schedule', requireAuth, async (req: any, res) => {
-    try {
-        const supabase = getUserSupabase(req);
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-        if (userError || !user) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-
-        const { enabled, time, timezone, source, count } = req.body;
-
-        // Validar inputs
-        if (!time || !source || count === undefined) {
-            return res.status(400).json({ error: 'Missing required fields: time, source, count' });
-        }
-
-        if (!/^\d{2}:\d{2}$/.test(time)) {
-            return res.status(400).json({ error: 'Invalid time format. Use HH:MM' });
-        }
-
-        if (!['keywords', 'creators'].includes(source)) {
-            return res.status(400).json({ error: 'Source must be "keywords" or "creators"' });
-        }
-
-        // Check if schedule exists
-        const { data: existing } = await supabaseAdmin!
-            .from(process.env.DB_TABLE_SCHEDULES || 'schedules_pablo')
-            .select('id')
-            .eq('user_id', user.id)
-            .single();
-
-        const scheduleData = {
-            user_id: user.id,
-            enabled: enabled !== false,
-            time,
-            timezone: timezone || 'Europe/Madrid',
-            source,
-            count: Math.max(1, count)
-        };
-
-        let savedSchedule;
-        if (existing) {
-            // Update existing schedule
-            const { data, error } = await supabaseAdmin!
-                .from(process.env.DB_TABLE_SCHEDULES || 'schedules_pablo')
-                .update(scheduleData)
-                .eq('id', existing.id)
-                .select()
-                .single();
-            if (error) throw error;
-            savedSchedule = data;
-        } else {
-            // Create new schedule
-            const { data, error } = await supabaseAdmin!
-                .from(process.env.DB_TABLE_SCHEDULES || 'schedules_pablo')
-                .insert(scheduleData)
-                .select()
-                .single();
-            if (error) throw error;
-            savedSchedule = data;
-        }
-
-        res.json({
-            status: 'success',
-            message: `Schedule ${savedSchedule.enabled ? 'enabled' : 'disabled'}`,
-            schedule: savedSchedule
-        });
-    } catch (error: any) {
-        console.error('Error saving schedule:', error);
-        res.status(500).json({ error: error.message || 'Failed to save schedule' });
-    }
-});
-
-// PUT - Toggle schedule on/off
-router.put('/schedule/toggle', requireAuth, async (req: any, res) => {
-    try {
-        const supabase = getUserSupabase(req);
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-        if (userError || !user) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-
-        const { data: schedules, error: fetchError } = await supabaseAdmin!
-            .from(process.env.DB_TABLE_SCHEDULES || 'schedules_pablo')
-            .select('*')
-            .eq('user_id', user.id);
-
-        if (fetchError) throw fetchError;
-        if (!schedules || schedules.length === 0) {
-            return res.status(404).json({ error: 'No schedule found' });
-        }
-
-        const currentSchedule = schedules[0];
-        const { data: updated, error: updateError } = await supabaseAdmin!
-            .from(process.env.DB_TABLE_SCHEDULES || 'schedules_pablo')
-            .update({ enabled: !currentSchedule.enabled })
-            .eq('id', currentSchedule.id)
-            .select()
-            .single();
-
-        if (updateError) throw updateError;
-
-        res.json({
-            status: 'success',
-            message: `Schedule ${updated.enabled ? 'enabled' : 'disabled'}`,
-            schedule: updated
-        });
-    } catch (error: any) {
-        console.error('Error toggling schedule:', error);
-        res.status(500).json({ error: error.message || 'Failed to toggle schedule' });
-    }
-});
-
-// GET - Obtener historial de ejecuciones del schedule
-router.get('/schedule/executions', requireAuth, async (req: any, res) => {
-    try {
-        const supabase = getUserSupabase(req);
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-        if (userError || !user) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-
-        const { data: executions, error } = await supabaseAdmin!
-            .from(process.env.DB_TABLE_EXECUTIONS || 'schedule_executions_pablo')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('executed_at', { ascending: false })
-            .limit(50);
-
-        if (error) throw error;
-
-        res.json({
-            status: 'success',
-            executions: executions || []
-        });
-    } catch (error: any) {
-        console.error('Error getting executions:', error);
-        res.status(500).json({ error: error.message || 'Failed to get executions' });
-    }
-});
+// All /schedule logic deleted
 
 // Mount router on both /api and / to handle Vercel path variations
 app.use('/api', router);
