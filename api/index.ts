@@ -6,7 +6,7 @@ import { ApifyClient } from 'apify-client';
 import OpenAI from 'openai';
 
 // ===== CONFIGURATION =====
-const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const APIFY_TOKEN = process.env.APIFY_API_TOKEN;
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
@@ -438,7 +438,7 @@ router.get('/cron', async (req: Request, res: Response) => {
 
                 const keywords: string[] = profile.niche_keywords || [];
                 const customInstructions = profile.custom_instructions || '';
-                const targetCount = Math.min(schedule.count || 1, 5);
+                const targetCount = schedule.count || 100; // Removed limits
 
                 // Prepare queries
                 let searchQueries: string[] = [];
@@ -645,9 +645,9 @@ async function executeWorkflowGenerate(req: Request, res: Response) {
 
     if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-    const MAX_ROUNDS = 2;        // Max 2 rounds to stay within Vercel 60s timeout
+    const MAX_ROUNDS = 10;        // Max 10 rounds to allow longer processing
     const BUFFER_MULTIPLIER = 2; // Fetch 2× more than needed from Apify
-    const targetCount = Math.min(Number(count) || 1, 10); // Cap at 10
+    const targetCount = count || 100; // Removed limit
 
     try {
         const { data: profile } = await supabase.from(process.env.DB_TABLE_PROFILES || 'profiles_pablo').select('*').single();
@@ -916,7 +916,7 @@ router.post('/schedule', requireAuth, async (req: any, res) => {
             time,
             timezone: timezone || 'Europe/Madrid',
             source,
-            count: Math.max(1, Math.min(count, 20))
+            count: Math.max(1, count)
         };
 
         let savedSchedule;

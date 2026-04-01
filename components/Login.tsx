@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { Mail, Lock, Key, TrendingUp } from 'lucide-react';
+import { Mail, Lock, Key, Cpu } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -29,14 +29,14 @@ export default function Login() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <div className="bg-slate-900 p-3 rounded-2xl shadow-lg">
-            <TrendingUp className="text-white h-8 w-8" />
+            <Cpu className="text-white h-8 w-8" />
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900">
-          Motor de Visibilidad Financiera
+          Motor de Prospección B2B
         </h2>
         <p className="mt-2 text-center text-sm text-slate-500">
-          Acceso exclusivo para Asesores Patrimoniales
+          Acceso exclusivo para Consultores B2B
         </p>
       </div>
 
@@ -60,7 +60,7 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-slate-300 rounded-lg p-3 border"
-                  placeholder="pablo@advisor.com"
+                  placeholder="info@agencia.com"
                 />
               </div>
             </div>

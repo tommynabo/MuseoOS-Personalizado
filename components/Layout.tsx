@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, PenTool, Settings as SettingsIcon, LogOut, Sparkles, FolderKanban, CheckCircle } from 'lucide-react';
+import { LayoutDashboard, PenTool, Settings as SettingsIcon, LogOut, Cpu, FolderKanban, CheckCircle } from 'lucide-react';
 import { ClientProfile } from '../types';
 
 interface LayoutProps {
@@ -35,10 +35,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onNavigate, curren
         <div className="p-8">
           <div className="flex items-center gap-3 text-slate-900 font-bold text-xl tracking-tight">
             <div className="bg-slate-900 p-2 rounded-xl text-white">
-              <Sparkles size={18} fill="currentColor" />
+              <Cpu size={18} fill="none" />
             </div>
-            <span>MuseOS</span>
-            <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">Finanzas</span>
+            <span>Apex Engine</span>
+            <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">B2B</span>
           </div>
         </div>
 
@@ -50,7 +50,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onNavigate, curren
               <p className="text-sm font-bold text-slate-900">{currentProfile.name}</p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">Asesor Activo</p>
+                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">Consultor Activo</p>
               </div>
             </div>
           </div>
@@ -70,7 +70,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onNavigate, curren
             <LogOut size={18} />
             Cerrar Sesión
           </button>
-          <p className="text-center text-[10px] text-slate-300 mt-4">MuseOS v2.1 • Pablo Edition</p>
+          <p className="text-center text-[10px] text-slate-300 mt-4">Apex Engine v3.0</p>
         </div>
       </div>
 

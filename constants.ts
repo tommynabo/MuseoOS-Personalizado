@@ -1,20 +1,20 @@
 import { ClientProfile, ContentPiece, Stats } from './types';
 
 export const CLIENT_PROFILES: Record<string, ClientProfile> = {
-  financial_advisor: {
-    id: 'financial_advisor',
-    name: 'Pablo',
-    role: 'Asesor Financiero / Gestor Patrimonial',
+  seo_consultor: {
+    id: 'seo_consultor',
+    name: 'Apex Engine',
+    role: 'Consultoría SEO / Coaching de Negocios',
     avatar: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?auto=format&fit=crop&q=80&w=200',
-    tone: 'Cercano pero Profesional',
-    nicheKeywords: ['Fiscalidad España', 'Jubilación', 'Fondos de Inversión', 'Cuentas de Depósitos', 'Planes de Pensiones', 'Inflación', 'Gestión Patrimonial'],
-    targetCreators: ['https://linkedin.com/in/marcvidal', 'https://linkedin.com/in/juanrallo', 'https://linkedin.com/in/raydalio'],
-    customInstructions: "Eres Pablo, un Asesor Financiero y Gestor Patrimonial independiente en España con más de 25 años de experiencia. Tienes 56 años, eres padre de familia y hablas desde la voz de la experiencia, la seguridad y la prudencia financiera.Tu objetivo es educar a profesionales y familias sobre cómo proteger su dinero frente a la inflación, optimizar su fiscalidad (específicamente en España) y planificar su jubilación de forma inteligente.Tono y Estilo:Cercano pero Profesional: Eres el asesor de confianza de toda la vida. Usas un tono educado, directo, sin vender humo ni prometer rendimientos mágicos. No usas lenguaje de 'criptobro' ni de 'lobo de Wall Street'.Prudente: Siempre recalcas la importancia de la diversificación y el perfil de riesgo.Formato de Escritura: Párrafos muy cortos (1-2 líneas), uso estratégico de saltos de línea y emojis sobrios (📉, 💡, 🏛️).Regla de Oro: NUNCA menciones a la empresa 'Safe Bro'. Hablas siempre como profesional independiente.Instrucción de Tarea:Vas a recibir un tema o un post viral sobre finanzas. Tu trabajo es reescribirlo usando tu tono y experiencia. El post debe tener:Un 'Hook' (gancho) que hable de un dolor real (pagar muchos impuestos, perder poder adquisitivo).Una explicación sencilla de un concepto complejo.Un CTA (Call to Action) al final pidiendo a la gente que te contacte o comente si quieren revisar su salud financiera.",
+    tone: 'Directo y Pragmático',
+    nicheKeywords: ['Consultoría SEO', 'Agencia B2B', 'Coaching High Ticket', 'Comunidad Skool', 'Automatización B2B', 'Scaling', 'Lead Gen'],
+    targetCreators: ['https://linkedin.com/in/marcvidal', 'https://linkedin.com/in/samovens', 'https://linkedin.com/in/alexhormozi'],
+    customInstructions: "Analiza el perfil del creador/consultor y el tipo de servicio o comunidad que ofrece. Redacta una línea de apertura que conecte su nicho específico con el cuello de botella de escalar operaciones online sin quemarse respondiendo mensajes manuales. No repitas su titular. Demuestra inteligencia comercial.\n\nPúblico Objetivo: Emprendedores digitales, Infoproductores, Coaches High Ticket, Consultores online y Dueños de Comunidades (Discord/Skool). Negocios 100% online saturados de trabajo manual.\nObjetivo del Mensaje: Vender el siguiente paso (agendar llamada rápida o enviar vídeo de Loom/Miro demostrativo).\nTono: Directo, pragmático, de igual a igual (de creador a creador). Cero humo. Sin saludos corporativos vacíos.",
   },
 };
 
 export const MOCK_STATS: Record<string, Stats> = {
-  financial_advisor: {
+  seo_consultor: {
     impressions: 8900,
     postsReady: 5,
     ideasGenerated: 24,
@@ -23,58 +23,58 @@ export const MOCK_STATS: Record<string, Stats> = {
 };
 
 export const INITIAL_CONTENT: ContentPiece[] = [
-  // Scenario A: Financial News
+  // Scenario A: SEO/B2B News
   {
     id: 'idea-1',
     sourceType: 'keyword_search',
-    originalAuthor: 'El País Economía',
-    originalUrl: 'https://elpais.com/economia',
-    originalText: "Hacienda intensifica las inspecciones a los autónomos que trabajan desde casa en relación con las deducciones de suministros.",
+    originalAuthor: 'Google Core Updates',
+    originalUrl: 'https://developers.google.com/search',
+    originalText: "Google ha lanzado una nueva core update que prioriza el contenido de experiencia real (E-E-A-T) reduciendo el spam generado por IA sin aportar valor.",
     viralMetrics: { likes: 450, comments: 120 },
-    tags: ['Noticia', 'Fiscalidad'],
+    tags: ['Noticia', 'SEO'],
     status: 'idea',
     targetDate: new Date(Date.now() + 86400000).toISOString(),
     generatedDraft: {
-      hook: "🚨 Hacienda está vigilando tus facturas de luz y agua si trabajas desde casa.",
-      body: "Muchos autónomos siguen deduciendo el 100% de sus suministros domésticos. Esto es un error que te puede costar una inspección.\n\nLa ley actual solo permite deducir el 30% de la proporción de metros cuadrados afectos a la actividad.\n\nEjemplo: Si tu despacho es el 10% de tu casa, solo puedes deducir el 30% de ese 10%.",
-      cta: "¿Tienes dudas sobre qué puedes deducir? Comenta 'AUDITORÍA' y lo revisamos.",
-      researchNotes: ["Ley 35/2006 IRPF", "Consulta Vinculante V0000-00"],
+      hook: "🚨 Tu contenido de IA está matando el tráfico de tu web.",
+      body: "Muchos agencias siguen delegando todo el SEO a la IA masiva. Esto es un error que te puede costar la invisibilidad en Google.\n\nLa nueva actualización prioriza la experiencia humana y el 'E-E-A-T'.\n\nEjemplo: Si tu post es solo un refrito de ChatGPT sin insight real, perderás posiciones rápidamente frente a voces con autoridad.",
+      cta: "Si dudas cómo adaptar tu estrategia de content a las nuevas reglas, envíame un DM y revisamos un vídeo donde te explico el proceso.",
+      researchNotes: ["Google E-E-A-T", "Actualización Core Marzo"],
       viralityAnalysis: {
-        viralityReason: "El contenido genera miedo controlado (fear appeal) que convierte lectores en savers/sharers. Los autónomos comparten para proteger a colegas.",
-        bottleneck: "Aunque genera urgencia, puede resultar cínica o alarmista si no se incluye el contexto legal completo.",
-        engagement_trigger: "El CTA 'comenta AUDITORÍA' genera engagement directo. Los autónomos comentan por miedo y por ayudar a otros.",
-        audience_relevance: "Altamente relevante para autónomos y profesionales independientes en España."
+        viralityReason: "El contenido genera un miedo legítimo a la pérdida de tráfico orgánico.",
+        bottleneck: "Alerta sin exagerar, apuntando al dolor.",
+        engagement_trigger: "El CTA invita a un vídeo de Loom de mucho valor.",
+        audience_relevance: "Relevante para dueños de agencias, e-commerces y consultorías."
       }
     },
     aiAnalysis: {
-        hook: { type: "Urgency", text: "🚨 Hacienda está vigilando tus facturas", effectiveness: 85, why_it_works: "Miedo a la autoridad" },
+        hook: { type: "Urgency", text: "🚨 Tu contenido de IA está matando el tráfico de tu web", effectiveness: 85, why_it_works: "Aversión a la pérdida" },
         virality_score: { overall: 85, verdict: "High Probability" }
     }
   },
-  // Scenario B: Investment Wisdom
+  // Scenario B: Consulting Wisdom
   {
     id: 'idea-2',
     sourceType: 'creator_reference',
-    originalAuthor: 'Ray Dalio',
-    originalText: "Cash is trash. You need to be diversified.",
+    originalAuthor: 'Consultor B2B',
+    originalText: "Vender barato atrae peores clientes. Escala tus precios y la calidad aumentará sola.",
     viralMetrics: { likes: 15000, comments: 800 },
-    tags: ['Inversión', 'Mentalidad'],
+    tags: ['Ventas', 'Mentalidad'],
     status: 'drafted',
     targetDate: new Date(Date.now() + 172800000).toISOString(),
     generatedDraft: {
-      hook: "¿Sigues guardando todo tu dinero en la cuenta corriente?",
-      body: "Con la inflación actual, dejar el dinero quieto es perder poder adquisitivo día a día. \n\nNo se trata de hacerse rico rápido, se trata de proteger lo que tanto te ha costado ganar.\n\nLa diversificación no es solo una estrategia, es un seguro de vida para tu patrimonio.",
-      cta: "Si quieres saber cómo proteger tus ahorros este año, escríbeme.",
-      researchNotes: ["Datos inflación INE", "Principios de Ray Dalio"],
+      hook: "¿Sigues vendiendo servicios baratos y sufriendo con clientes que exigen demasiado?",
+      body: "Con el modelo actual de agencias de bajo ticket, cada nuevo cliente es un problema más, no un avance.\n\nNo se trata de trabajar más duro, se trata de reestructurar la oferta.\n\nEl salto High Ticket soluciona los problemas de retención y el dolor de cabeza.",
+      cta: "Tengo un vídeo corto demostrando cómo mi equipo filtró los leads. Dime si quieres que te lo mande.",
+      researchNotes: ["Estrategias High Ticket", "Filtrado de Leads B2B"],
       viralityAnalysis: {
-        viralityReason: "Toca el dolor de la pérdida de valor del dinero (aversión a la pérdida).",
-        bottleneck: "Puede parecer un consejo genérico si no se acompaña de datos actuales.",
-        engagement_trigger: "Pregunta retórica inicial que invita a la reflexión.",
-        audience_relevance: "Relevante para familias y ahorradores preocupados por el futuro."
+        viralityReason: "Toca el dolor profundo de estar saturado de clientes malos.",
+        bottleneck: "Debes aportar pasos claros o un recurso después.",
+        engagement_trigger: "Pregunta del cuello de botella en su agencia.",
+        audience_relevance: "Totalmente en línea con dueños de agencias B2B y coaches."
       }
     },
     aiAnalysis: {
-        hook: { type: "Question", text: "¿Sigues guardando todo tu dinero...?", effectiveness: 75, why_it_works: "Curiosity gap" },
+        hook: { type: "Question", text: "¿Sigues vendiendo servicios baratos...?", effectiveness: 75, why_it_works: "Toca el dolor central de las agencias" },
         virality_score: { overall: 70, verdict: "Medium Probability" }
     }
   },
