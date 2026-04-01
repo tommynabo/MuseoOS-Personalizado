@@ -1,6 +1,6 @@
 export type SourceType = 'creator_reference' | 'keyword_search' | 'user_audio';
 export type ContentStatus = 'idea' | 'drafted' | 'approved' | 'posted';
-export type ClientPersona = 'psychologist' | 'seo_consultor';
+export type ClientPersona = 'psychologist' | 'seo_consultor' | 'ai_architect';
 
 export interface ViralMetrics {
   likes: number;

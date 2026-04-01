@@ -208,6 +208,7 @@ export const evaluatePostEngagement = async (posts: any[], userPreferences?: str
 export const extractPostStructure = async (originalContent: string) => {
     const prompt = `
     Analiza este post viral y extrae su "ESQUELETO ESTRUCTURAL" (no el contenido, sino la forma).
+    Si el post original tiene mucho "humo", céntrate solo en la mecánica de retención (cómo abre, cómo justifica, cómo cierra).
     
     INPUT POST:
     "${originalContent}"
@@ -262,11 +263,12 @@ export const regeneratePost = async (structureJson: string, originalContent: str
     CONTEXTO ORIGEN (Solo referencia):
     ${originalContent.substring(0, 500)}...
     
-    OUTPUT:
-    Escribe el post final. Sin preámbulos.
-    - Usa párrafos cortos.
-    - Sin hashtags excesivos.
-    - Tono directo y conversacional.
+    OUTPUT ESTRICTO (Si violas estas reglas, el post será rechazado):
+    - Escribe el post final. SIN PREÁMBULOS ni introducciones.
+    - TONO: Ejecutivo, crudo, pragmático. De igual a igual (Ingeniero a CEO).
+    - PROHIBIDO: Emojis emocionales (🙏, 🙌, 🔥), saludos ("Hola a todos"), preguntas retóricas baratas.
+    - OBLIGATORIO: Firma el post al final con "A construir." o "A seguir construyendo."
+    - Usa párrafos cortos (1-2 líneas).
     `;
 
     const response = await openai.chat.completions.create({
