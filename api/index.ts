@@ -140,12 +140,12 @@ async function getCreatorPosts(profileUrls: string[], maxPosts = 3): Promise<Api
     if (!apifyClient) { console.error("Apify token missing"); return []; }
     try {
         const run = await apifyClient.actor("A3cAPGpwBEG8RJwse").call({
-            includeQuotePosts: true, includeReposts: true, maxComments: 5, maxPosts,
-            maxReactions: 1, postedLimit: "week", scrapeComments: true, scrapeReactions: true,
+            includeQuotePosts: true, includeReposts: false, maxComments: 0, maxPosts,
+            maxReactions: 0, postedLimit: "month", scrapeComments: false, scrapeReactions: false,
             targetUrls: profileUrls
         });
         const { items } = await apifyClient.dataset(run.defaultDatasetId).listItems();
-        return items as ApifyPost[];
+        return items.filter(item => !item.type || item.type === 'post') as ApifyPost[];
     } catch (error) {
         console.error("Apify Creator Posts Error:", error);
         return [];
@@ -178,16 +178,13 @@ async function evaluatePostEngagement(posts: ApifyPost[]): Promise<ApifyPost[]> 
 
     // Low floor to ensure we have candidates
     const meaningfulPosts = posts.filter(p => {
+        if (p.type && p.type !== 'post') return false;
         const len = extractPostText(p).length;
-        if (len < 50) return false; // Skip empty posts
-        // Relaxed metric floor: even 1 like might be enough if it has comments?
-        // Let's rely on ratio mostly, but ensure at least SOME engagement or it's dead
-        const likes = getMetric(p, 'likes');
-        const comments = getMetric(p, 'comments');
-        return (likes + comments) > 2;
+        if (len < 30) return false; // Skip empty posts
+        return true;
     });
 
-    if (meaningfulPosts.length === 0) return posts.slice(0, 3); // Fallback to raw if logic filtered all
+    if (meaningfulPosts.length === 0) return posts.filter(p => !p.type || p.type === 'post').slice(0, 3); // Fallback to raw if logic filtered all
 
     const postsData = meaningfulPosts.slice(0, 15).map((p, idx) => ({
         index: idx,
@@ -535,7 +532,7 @@ async function executeWorkflowGenerate(req: Request, res: Response) {
             creatorUrls = creators
                 .map((c: any) => c.linkedin_url)
                 .filter((u: any) => typeof u === 'string' && u.trim().length > 0)
-                .slice(0, 5);
+                .slice(0, 10);
         }
 
         // ===== SMART BUFFER LOOP =====
@@ -562,6 +559,7 @@ async function executeWorkflowGenerate(req: Request, res: Response) {
 
             // Deduplicate against already-processed posts
             const newPosts = roundPosts.filter(p => {
+                if (p.type && p.type !== 'post') return false; // Ensure only posts
                 const postId = p.id || p.url || extractPostText(p).substring(0, 50);
                 if (processedPostIds.has(postId)) return false;
                 processedPostIds.add(postId);
